@@ -1,4 +1,5 @@
 import os
+import certifi
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler, filters
 from pymongo import MongoClient
@@ -12,9 +13,10 @@ TELEGRAM_BOT_TOKEN = os.getenv('ENV_TELEGRAM_BOT_TOKEN')
 MONGO_URI = os.getenv('ENV_MONGO_URI')
 db_name = os.getenv('ENV_MONGO_DB_NAME')
 
-# Connect to MongoDB
-client = MongoClient(MONGO_URI)
-db = client[db_name]
+# Connect to MongoDB with CA Bundle
+client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
+db = client[os.getenv('ENV_MONGO_DB_NAME')]
+
 groups_collection = db['groups']
 
 # Define the keyboard layout
@@ -25,6 +27,9 @@ keyboard_layout = [
 # Handler for the /start command
 async def start(update: Update, context: CallbackContext):
     try:
+        # Send typing indicator
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
+        
         bot_username = context.bot.username
         reply_markup = ReplyKeyboardMarkup(keyboard_layout, resize_keyboard=True, one_time_keyboard=True)
         await update.message.reply_text(
@@ -38,6 +43,9 @@ async def start(update: Update, context: CallbackContext):
 # Handler for the /help command
 async def help_command(update: Update, context: CallbackContext):
     try:
+        # Send typing indicator
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
+        
         help_text = """
 Available commands:
 /sol-amt - Enter the SOL amount
@@ -52,6 +60,9 @@ Available commands:
 # Handler for the /commands command
 async def commands(update: Update, context: CallbackContext):
     try:
+        # Send typing indicator
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
+        
         commands_keyboard = [
             ["Enter SOL Amount"],
             ["Start"],
@@ -66,6 +77,9 @@ async def commands(update: Update, context: CallbackContext):
 # Handler for the /magic command
 async def magic(update: Update, context: CallbackContext):
     try:
+        # Send typing indicator
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
+        
         if not update.message:
             return await update.message.reply_text("There was an error processing your command. Please try again later.")
 
