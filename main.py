@@ -15,6 +15,9 @@ TELEGRAM_BOT_TOKEN = os.getenv('ENV_TELEGRAM_BOT_TOKEN')
 MONGO_URI = os.getenv('ENV_MONGO_URI')
 db_name = os.getenv('ENV_MONGO_DB_NAME')
 
+if db_name is None:
+    raise ValueError("ENV_MONGO_DB_NAME is not set in environment variables")
+
 # Connect to MongoDB with CA Bundle
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client[os.getenv('ENV_MONGO_DB_NAME')]
@@ -82,7 +85,7 @@ async def commands(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         # Send typing indicator
-        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
+        await context.bot.send_chat_action(chat_id=update.eff   ective_chat.id, action='typing')
         
         if not update.message:
             return await update.message.reply_text("There was an error processing your command. Please try again later.")
