@@ -2,10 +2,11 @@ import os
 import certifi
 import urllib3
 urllib3.disable_warnings()
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram import Update, ReplyKeyboardMarkup, Chat, BotCommand
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, JobQueue
 from pymongo import MongoClient
 from dotenv import load_dotenv
+import logging
 
 # Load environment variables
 load_dotenv()
@@ -19,113 +20,115 @@ if db_name is None:
 # Connect to MongoDB with CA Bundle
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client[os.getenv('ENV_MONGO_DB_NAME')]
-
-
 groups_collection = db['groups']
 
-# Define the keyboard layout
-keyboard_layout = [
-    ["Help"]
-]
 
-# Handler for the /start command
-# async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Configure logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+keyboard_layout = [['Make the group private'], ['/magic <walAddress>']]
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Your code here
     try:
         # Send typing indicator
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
-        
+
+        chat = update.effective_chat
+
+        # Check if the chat is a group
+        if chat.type not in [Chat.GROUP, Chat.SUPERGROUP]:
+            await update.message.reply_text("This bot can only be used in group chats.")
+            return
+
         bot_username = context.bot.username
         reply_markup = ReplyKeyboardMarkup(keyboard_layout, resize_keyboard=True, one_time_keyboard=True)
         await update.message.reply_text(
-            f"Hello! I'm @{bot_username}. Choose an option below:",
+            f"Hello! I'm @{bot_username}. Follow the steps below:\n\n"
+            "1. Make the group private (select the option below and follow instructions)\n"
+            "2. Use /magic <walAddress> to proceed",
             reply_markup=reply_markup
         )
     except Exception as e:
         print(f"Error displaying commands list: {e}")
         await update.message.reply_text("Sorry, there was an error. Try again later.")
 
-# Handler for the /help command
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        # Send typing indicator
-        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
-        
-        help_text = """
-Available commands:
-/sol-amt - Enter the SOL amount
-/start - Start a new session
-/help - Show this help message
-"""
-        await update.message.reply_text(help_text)
-    except Exception as e:
-        print(f"Error displaying help message: {e}")
-        await update.message.reply_text("Sorry, there was an error. Try again later.")
+async def make_group_private(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "To make the group private, follow these steps:\n\n"
+        "1. Open the group chat.\n"
+        "2. Tap on the group name to open the group info.\n"
+        "3. Tap on 'Edit' (or the pencil icon) to edit the group settings.\n"
+        "4. Tap on 'Group Type' and select 'Private Group'.\n"
+        "5. Save the changes.\n\n"
+        "After making the group private, you can proceed with the /magic command."
+    )
 
-# Handler for the /commands command
-async def commands(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        # Send typing indicator
-        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
-        
-        commands_keyboard = [
-            ["Enter SOL Amount"],
-            ["Start"],
-            ["Show Help"]
-        ]
-        reply_markup = ReplyKeyboardMarkup(commands_keyboard, resize_keyboard=True, one_time_keyboard=True)
-        await update.message.reply_text("Choose a command:", reply_markup=reply_markup)
-    except Exception as e:
-        print(f"Error displaying commands keyboard: {e}")
-        await update.message.reply_text("Sorry, there was an error. Try again later.")
 
-# Handler for the /magic command
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+
 async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         # Send typing indicator
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
         
+        # Check if the update contains a message
         if not update.message:
             return await update.message.reply_text("There was an error processing your command. Please try again later.")
 
-        chat_member = await context.bot.get_chat_member(update.message.chat_id, update.message.from_user.id)
+        chat_member = await context.bot.get_chat_member(update.effective_chat.id, update.message.from_user.id)
         if chat_member.status not in ['creator', 'administrator']:
             return await update.message.reply_text("Sorry, only administrators and the group owner can use this command.")
 
+        # Get arguments provided with the command
         args = context.args
         if not args:
             return await update.message.reply_text("Please provide an SPL address.")
 
         spl_address = ' '.join(args)
 
+        # Assuming groups_collection is already initialized and connected
         groups_collection.insert_one({
-            'chatId': update.message.chat_id,
+            'chatId': update.effective_chat.id,
             'chatUserId': update.message.from_user.id,
-            'chatName': update.message.chat.title,
-            'chatType': update.message.chat.type,
+            'chatName': update.effective_chat.title,
+            'chatType': update.effective_chat.type,
             'splAddress': spl_address,
             'timestamp': str(update.message.date.timestamp())
         })
 
-        blink_url = f"https://blinktochat.fun/api/actions/start/{update.message.chat_id}/{spl_address}"
+        blink_url = f"https://blinktochat.fun/api/actions/start/{update.effective_chat.id}/{spl_address}"
         await update.message.reply_text(blink_url)
 
         dialect_url = f"https://dial.to/devnet?action=solana-action:{blink_url}"
         await update.message.reply_text(dialect_url)
 
     except Exception as e:
-        print(f"Error processing /magic command: {e}")
+        logging.error(f"Error processing /magic command: {e}")
         await update.message.reply_text("Sorry, there was an error processing your command. Please try again later.")
 
+async def set_commands(context: ContextTypes.DEFAULT_TYPE):
+    commands = [
+        BotCommand("start", "Start the bot and see the options"),
+        BotCommand("magic", "Use /magic <walAddress> to proceed")
+    ]
+    await context.bot.set_my_commands(commands)
+
 def main():
+    # Create the Application and pass it your bot's token.
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("commands", commands))
-    application.add_handler(CommandHandler("magic", magic))
+    # Create a JobQueue and set it up in the application
+    job_queue = application.job_queue
 
+    # Schedule the set_commands function to run every hour to ensure commands are set
+    job_queue.run_repeating(set_commands, interval=3600, first=0)
+
+    # Add handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.Regex('Make the group private'), make_group_private))
+
+    # Run the bot until you press Ctrl-C
     application.run_polling()
 
 if __name__ == '__main__':
