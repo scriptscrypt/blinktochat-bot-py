@@ -14,13 +14,12 @@ load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv('ENV_TELEGRAM_BOT_TOKEN')
 MONGO_URI = os.getenv('ENV_MONGO_URI')
 db_name = os.getenv('ENV_MONGO_DB_NAME')
-
 if db_name is None:
     raise ValueError("ENV_MONGO_DB_NAME is not set in environment variables")
-
 # Connect to MongoDB with CA Bundle
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
-db = client[os.getenv('ENV_MONGO_DB_NAME')]
+db = client[os.getenv(db_name)]
+
 
 groups_collection = db['groups']
 
