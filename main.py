@@ -4,6 +4,8 @@ from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler, filters
 from pymongo import MongoClient
 from dotenv import load_dotenv
+import urllib3
+urllib3.disable_warnings()
 
 # Load environment variables
 load_dotenv()
