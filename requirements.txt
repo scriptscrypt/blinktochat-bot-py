@@ -1,6 +1,6 @@
 pymongo==3.12.1
 python-dotenv==0.19.2
-python-telegram-bot==13.7
+python-telegram-bot==20.4
 pymongo[srv]
 certifi
 urllib3==1.26.15

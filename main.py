@@ -1,11 +1,11 @@
 import os
 import certifi
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler, filters
-from pymongo import MongoClient
-from dotenv import load_dotenv
 import urllib3
 urllib3.disable_warnings()
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from pymongo import MongoClient
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
@@ -27,7 +27,9 @@ keyboard_layout = [
 ]
 
 # Handler for the /start command
-async def start(update: Update, context: CallbackContext):
+# async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Your code here
     try:
         # Send typing indicator
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
@@ -43,7 +45,7 @@ async def start(update: Update, context: CallbackContext):
         await update.message.reply_text("Sorry, there was an error. Try again later.")
 
 # Handler for the /help command
-async def help_command(update: Update, context: CallbackContext):
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         # Send typing indicator
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
@@ -60,7 +62,7 @@ Available commands:
         await update.message.reply_text("Sorry, there was an error. Try again later.")
 
 # Handler for the /commands command
-async def commands(update: Update, context: CallbackContext):
+async def commands(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         # Send typing indicator
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
@@ -77,7 +79,7 @@ async def commands(update: Update, context: CallbackContext):
         await update.message.reply_text("Sorry, there was an error. Try again later.")
 
 # Handler for the /magic command
-async def magic(update: Update, context: CallbackContext):
+async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         # Send typing indicator
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
