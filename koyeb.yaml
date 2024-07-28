@@ -1,0 +1,5 @@
+name: blinktochatbot
+type: web
+env: python
+buildCommand: pip install -r requirements.txt
+runCommand: python main.py
