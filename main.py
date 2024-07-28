@@ -13,7 +13,8 @@ load_dotenv()
 # Get environment variables
 TELEGRAM_BOT_TOKEN = os.getenv('ENV_TELEGRAM_BOT_TOKEN')
 MONGO_URI = os.getenv('ENV_MONGO_URI')
-db_name = os.getenv('ENV_MONGO_DB_NAME')
+# db_name = os.getenv('ENV_MONGO_DB_NAME')
+db_name = 'tg-blinks'
 if db_name is None:
     raise ValueError("ENV_MONGO_DB_NAME is not set in environment variables")
 # Connect to MongoDB with CA Bundle
