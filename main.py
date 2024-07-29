@@ -64,8 +64,12 @@ async def make_group_private(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
 
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
+# # Set up logging
+# logging.basicConfig(level=logging.INFO)
+
+# Telegram does not directly provide a property to distinguish private groups from public groups,
+# but you can infer this based on the presence of an invite link or username. 
+# If a group is private, it won't have a username.
 
 async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -75,6 +79,10 @@ async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Check if the update contains a message
         if not update.message:
             return await update.message.reply_text("There was an error processing your command. Please try again later.")
+
+        # Check if the group is private
+        if update.effective_chat.username:
+            return await update.message.reply_text("This command can only be used in private groups. use /start to know more")
 
         chat_member = await context.bot.get_chat_member(update.effective_chat.id, update.message.from_user.id)
         if chat_member.status not in ['creator', 'administrator']:
@@ -106,7 +114,6 @@ async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logging.error(f"Error processing /magic command: {e}")
         await update.message.reply_text("Sorry, there was an error processing your command. Please try again later.")
-
 async def set_commands(context: ContextTypes.DEFAULT_TYPE):
     commands = [
         BotCommand("start", "Start the bot and see the options"),
@@ -124,8 +131,9 @@ def main():
     # Schedule the set_commands function to run every hour to ensure commands are set
     job_queue.run_repeating(set_commands, interval=3600, first=0)
 
-    # Add handlers
+    # Add handlers - if not the commands doesn't start
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("magic", magic))
     application.add_handler(MessageHandler(filters.Regex('Make the group private'), make_group_private))
 
     # Run the bot until you press Ctrl-C
