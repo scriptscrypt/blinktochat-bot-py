@@ -119,25 +119,30 @@ async def fetch(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Split long responses into multiple messages
             collections_list = ""
             for item in items:
+                # Extracting data
                 name = item.get('content', {}).get('metadata', {}).get('name', 'Unnamed NFT')
                 description = item.get('content', {}).get('metadata', {}).get('description', 'No description available')
                 image_url = item.get('content', {}).get('links', {}).get('image', 'No image URL available')
-                group_value = next((group['group_value'] for group in item.get('grouping', []) if group.get('group_key') == 'collection'), 'No group value')
+                group_value = next((group['group_value'] for group in item.get('grouping', []) if group.get('group_key') == 'collection'), None)
+
+                # Filter out items without a collection address (group_value)
+                if not group_value:
+                    continue
 
                 # Format the output for each NFT
                 nft_info = (
                     f"Name: {name}\n"
-                    # f"Description: {description}\n"
-                    # f"Image: {image_url}\n"
                     f"Collection Address: {group_value}\n\n"
                 )
 
+                # Check if the current message exceeds the limit
                 if len(collections_list) + len(nft_info) > 4000:
                     await update.message.reply_text(collections_list)
                     collections_list = ""
 
                 collections_list += nft_info
             
+            # Send the last accumulated message
             if collections_list:
                 await update.message.reply_text(collections_list)
     except Exception as e:
