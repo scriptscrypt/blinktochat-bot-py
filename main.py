@@ -169,7 +169,7 @@ async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Get arguments provided with the command
         args = context.args
         if not args:
-            return await update.message.reply_text("Please provide an SPL address.")
+            return await update.message.reply_text("Please provide a collection address.")
 
         collectionAddress = ' '.join(args)
 
@@ -195,8 +195,8 @@ async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def set_commands(context: ContextTypes.DEFAULT_TYPE):
     commands = [
         BotCommand("start", "Start the bot and see the options"),
-        BotCommand("magic", "Use /magic <walAddress> to proceed"),
-        BotCommand("fetch", "Use /fetch <walAddress> to proceed")
+        BotCommand("magic", "Use /magic <collection address> to gate with NFT collection"),
+        BotCommand("fetch", "Use /fetch <walAddress> to fetch NFT collections for a wallet address")
     ]
     await context.bot.set_my_commands(commands)
 
