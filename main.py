@@ -200,6 +200,7 @@ def main():
     # Add handlers - if not the commands doesn't start
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("magic", magic))
+    application.add_handler(CommandHandler("fetch", fetch))
     application.add_handler(MessageHandler(filters.Regex('Make the group private'), make_group_private))
 
     # Run the bot until you press Ctrl-C
