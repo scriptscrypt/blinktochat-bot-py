@@ -127,9 +127,9 @@ async def fetch(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 # Format the output for each NFT
                 nft_info = (
                     f"Name: {name}\n"
-                    f"Description: {description}\n"
-                    f"Image: {image_url}\n"
-                    f"Group Value: {group_value}\n\n"
+                    # f"Description: {description}\n"
+                    # f"Image: {image_url}\n"
+                    f"Collection Address: {group_value}\n\n"
                 )
 
                 if len(collections_list) + len(nft_info) > 4000:
