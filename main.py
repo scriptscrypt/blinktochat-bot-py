@@ -102,7 +102,7 @@ async def fetch(update: Update, context: ContextTypes.DEFAULT_TYPE):
             }
         }
         
-      # Make the API call
+        # Make the API call
         response = requests.post(url, json=payload, headers={'Content-Type': 'application/json'})
         response_data = response.json()
         
@@ -116,7 +116,7 @@ async def fetch(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not items:
             await update.message.reply_text(f"No NFT collections found for wallet address: {wallet_address}")
         else:
-              # List the NFTs found
+            # Split long responses into multiple messages
             collections_list = ""
             for item in items:
                 name = item.get('content', {}).get('metadata', {}).get('name', 'Unnamed NFT')
@@ -125,13 +125,21 @@ async def fetch(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 group_value = next((group['group_value'] for group in item.get('grouping', []) if group.get('group_key') == 'collection'), 'No group value')
 
                 # Format the output for each NFT
-                collections_list += (
+                nft_info = (
                     f"Name: {name}\n"
+                    f"Description: {description}\n"
                     f"Image: {image_url}\n"
-                    f"Collection Address: {group_value}\n\n"
+                    f"Group Value: {group_value}\n\n"
                 )
+
+                if len(collections_list) + len(nft_info) > 4000:
+                    await update.message.reply_text(collections_list)
+                    collections_list = ""
+
+                collections_list += nft_info
             
-            await update.message.reply_text(f"NFT Collections for {wallet_address}:\n\n{collections_list}")
+            if collections_list:
+                await update.message.reply_text(collections_list)
     except Exception as e:
         logging.error(f"Error processing /fetch command: {e}")
         await update.message.reply_text("Sorry, there was an error fetching NFT collections. Please try again later.")
