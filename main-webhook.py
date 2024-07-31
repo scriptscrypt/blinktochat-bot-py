@@ -3,10 +3,11 @@ import certifi
 import urllib3
 urllib3.disable_warnings()
 from telegram import Update, ReplyKeyboardMarkup, Chat, BotCommand
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, JobQueue
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import logging
+from flask import Flask, request
 
 # Load environment variables
 load_dotenv()
@@ -15,13 +16,14 @@ load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv('ENV_TELEGRAM_BOT_TOKEN')
 MONGO_URI = os.getenv('ENV_MONGO_URI')
 db_name = os.getenv('ENV_MONGO_DB_NAME')
+WEBHOOK_URL = os.getenv('ENV_WEBHOOK_URL')  # Add this to your .env file
 if db_name is None:
     raise ValueError("ENV_MONGO_DB_NAME is not set in environment variables")
+
 # Connect to MongoDB with CA Bundle
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client[os.getenv('ENV_MONGO_DB_NAME')]
 groups_collection = db['groups']
-
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -68,73 +70,8 @@ async def make_group_private(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # logging.basicConfig(level=logging.INFO)
 
 # Telegram does not directly provide a property to distinguish private groups from public groups,
-# but you can infer this based on the presence of an invite link or username. 
+# but we can infer this based on the presence of an invite link or username. 
 # If a group is private, it won't have a username.
-# Define a function to fetch NFT collections for a wallet address
-import requests
-
-# Define a function to fetch NFT collections for a wallet address
-async def fetch(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
-
-        # Check if the user provided a wallet address
-        args = context.args
-        if not args:
-            await update.message.reply_text("Please provide a wallet address. Example: /fetch <walletAddress>")
-            return
-
-        wallet_address = ' '.join(args)
-        
-        # Define the API endpoint and your API key
-        api_key = os.getenv('ENV_HELIUS_API_KEY')  # Make sure to add your Helius API key to the environment variables
-        url = f"https://mainnet.helius-rpc.com/?api-key={api_key}"
-        
-        # Define the payload for the POST request
-        payload = {
-            "jsonrpc": "2.0",
-            "id": "my-id",
-            "method": "getAssetsByOwner",
-            "params": {
-                "ownerAddress": wallet_address,
-                "page": 1,
-                "limit": 1000
-            }
-        }
-        
-      # Make the API call
-        response = requests.post(url, json=payload, headers={'Content-Type': 'application/json'})
-        response_data = response.json()
-        
-        # Check for errors in the response
-        if 'error' in response_data:
-            await update.message.reply_text(f"Error fetching data: {response_data['error']['message']}")
-            return
-        
-        # Extract the list of NFTs
-        items = response_data.get('result', {}).get('items', [])
-        if not items:
-            await update.message.reply_text(f"No NFT collections found for wallet address: {wallet_address}")
-        else:
-              # List the NFTs found
-            collections_list = ""
-            for item in items:
-                name = item.get('content', {}).get('metadata', {}).get('name', 'Unnamed NFT')
-                description = item.get('content', {}).get('metadata', {}).get('description', 'No description available')
-                image_url = item.get('content', {}).get('links', {}).get('image', 'No image URL available')
-                group_value = next((group['group_value'] for group in item.get('grouping', []) if group.get('group_key') == 'collection'), 'No group value')
-
-                # Format the output for each NFT
-                collections_list += (
-                    f"Name: {name}\n"
-                    f"Image: {image_url}\n"
-                    f"Collection Address: {group_value}\n\n"
-                )
-            
-            await update.message.reply_text(f"NFT Collections for {wallet_address}:\n\n{collections_list}")
-    except Exception as e:
-        logging.error(f"Error processing /fetch command: {e}")
-        await update.message.reply_text("Sorry, there was an error fetching NFT collections. Please try again later.")
 
 async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -158,19 +95,19 @@ async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not args:
             return await update.message.reply_text("Please provide an SPL address.")
 
-        collectionAddress = ' '.join(args)
+        spl_address = ' '.join(args)
 
+        # Assuming groups_collection is already initialized and connected
         groups_collection.insert_one({
             'chatId': update.effective_chat.id,
             'chatUserId': update.message.from_user.id,
             'chatName': update.effective_chat.title,
             'chatType': update.effective_chat.type,
-            'collectionAddress': collectionAddress,
-            'gatingType': 'NFTCollection',
+            'splAddress': spl_address,
             'timestamp': str(update.message.date.timestamp())
         })
 
-        blink_url = f"https://blinktochat.fun/{update.effective_chat.id}/{collectionAddress}"
+        blink_url = f"https://blinktochat.fun/api/actions/start/{update.effective_chat.id}/{spl_address}"
         await update.message.reply_text(blink_url)
 
         dialect_url = f"https://dial.to/devnet?action=solana-action:{blink_url}"
@@ -179,13 +116,35 @@ async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logging.error(f"Error processing /magic command: {e}")
         await update.message.reply_text("Sorry, there was an error processing your command. Please try again later.")
+        
 async def set_commands(context: ContextTypes.DEFAULT_TYPE):
     commands = [
         BotCommand("start", "Start the bot and see the options"),
-        BotCommand("magic", "Use /magic <walAddress> to proceed"),
-        BotCommand("fetch", "Use /fetch <walAddress> to proceed")
+        BotCommand("magic", "Use /magic <walAddress> to proceed")
     ]
     await context.bot.set_my_commands(commands)
+
+# Initialize Flask app
+app = Flask(__name__)
+
+# Initialize bot application
+application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+
+# Add handlers
+application.add_handler(CommandHandler("start", start))
+application.add_handler(CommandHandler("magic", magic))
+application.add_handler(MessageHandler(filters.Regex('Make the group private'), make_group_private))
+
+@app.route('/', methods=['GET', 'POST'])
+def webhook():
+    if request.method == 'POST':
+        update = Update.de_json(request.get_json(force=True), application.bot)
+        application.process_update(update)
+    return 'OK'
+
+async def setup_webhook():
+    await application.bot.set_webhook(url=WEBHOOK_URL)
+    await set_commands(ContextTypes.DEFAULT_TYPE(application))
 
 def main():
     # Create the Application and pass it your bot's token.
@@ -206,4 +165,7 @@ def main():
     application.run_polling()
 
 if __name__ == '__main__':
-    main()
+    from asyncio import get_event_loop
+    loop = get_event_loop()
+    loop.run_until_complete(setup_webhook())
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
