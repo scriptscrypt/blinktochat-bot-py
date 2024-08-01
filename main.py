@@ -7,6 +7,8 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import logging
+from helpers.xTimeago import utilXtimeAgo
+
 
 # Load environment variables
 load_dotenv()
@@ -215,10 +217,10 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             stats_message = f"Groups gated with collection address {collection_address}:\n\n"
             for group in groups:
-                stats_message += f"Chat ID: {group['chatId']}\n"
                 stats_message += f"Chat Name: {group['chatName']}\n"
                 stats_message += f"Gating Type: {group['gatingType']}\n"
-                stats_message += f"Timestamp: {group['timestamp']}\n\n"
+                stats_message += f"Created: {utilXtimeAgo(group['timestamp'])}\n\n"
+                stats_message += "-------------------\n\n"
 
         else:
             # Fetch all groups
@@ -231,6 +233,8 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
             for group in groups:
                 stats_message += f"Group: {group['chatName']}\n"
                 stats_message += f"Collection Address: {group['collectionAddress']}\n\n"
+                stats_message += f"Created: {utilXtimeAgo(group['timestamp'])}\n\n"
+                stats_message += "-------------------\n\n"
 
         # Split long messages if necessary
         if len(stats_message) > 4096:
@@ -241,8 +245,7 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     except Exception as e:
         logging.error(f"Error processing /stats command: {e}")
-        await update.message.reply_text("Sorry, there was an error fetching the statistics. Please try again later.")
-        
+        await update.message.reply_text("Sorry, there was an error fetching the statistics. Please try again later.")     
 async def set_commands(context: ContextTypes.DEFAULT_TYPE):
     commands = [
         BotCommand("start", "Start the bot and see the options"),
