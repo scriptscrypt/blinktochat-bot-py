@@ -192,12 +192,64 @@ async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logging.error(f"Error processing /magic command: {e}")
         await update.message.reply_text("Sorry, there was an error processing your command. Please try again later.")
+        
+async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        # Send typing indicator
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
+        
+        # Check if the command is used in a private chat (DM)
+        if update.effective_chat.type != Chat.PRIVATE:
+            return await update.message.reply_text("This command can only be used in private messages with the bot.")
+
+        # Get arguments provided with the command
+        args = context.args
+        collection_address = ' '.join(args) if args else None
+
+        if collection_address:
+            # Fetch data for the specific collection address
+            groups = list(groups_collection.find({'collectionAddress': collection_address}))
+
+            if not groups:
+                return await update.message.reply_text(f"No groups found gated with collection address: {collection_address}")
+
+            stats_message = f"Groups gated with collection address {collection_address}:\n\n"
+            for group in groups:
+                stats_message += f"Chat ID: {group['chatId']}\n"
+                stats_message += f"Chat Name: {group['chatName']}\n"
+                stats_message += f"Gating Type: {group['gatingType']}\n"
+                stats_message += f"Timestamp: {group['timestamp']}\n\n"
+
+        else:
+            # Fetch all groups
+            groups = list(groups_collection.find({}, {'chatName': 1, 'collectionAddress': 1}))
+
+            if not groups:
+                return await update.message.reply_text("No gated groups found.")
+
+            stats_message = "All gated groups:\n\n"
+            for group in groups:
+                stats_message += f"Group: {group['chatName']}\n"
+                stats_message += f"Collection Address: {group['collectionAddress']}\n\n"
+
+        # Split long messages if necessary
+        if len(stats_message) > 4096:
+            for i in range(0, len(stats_message), 4096):
+                await update.message.reply_text(stats_message[i:i+4096])
+        else:
+            await update.message.reply_text(stats_message)
+
+    except Exception as e:
+        logging.error(f"Error processing /stats command: {e}")
+        await update.message.reply_text("Sorry, there was an error fetching the statistics. Please try again later.")
+        
 async def set_commands(context: ContextTypes.DEFAULT_TYPE):
     commands = [
         BotCommand("start", "Start the bot and see the options"),
         BotCommand("magic", "Use /magic <collection address> to gate with NFT collection"),
-        BotCommand("fetch", "Use /fetch <walAddress> to fetch NFT collections for a wallet address")
-    ]
+        BotCommand("fetch", "Use /fetch <walAddress> to fetch NFT collections for a wallet address"),
+        BotCommand("stats", "Get statistics about registered groups (only works in DM)")
+]
     await context.bot.set_my_commands(commands)
 
 def main():
@@ -214,6 +266,8 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("magic", magic))
     application.add_handler(CommandHandler("fetch", fetch))
+    application.add_handler(CommandHandler("stats", stats))  # Add this line
+
     application.add_handler(MessageHandler(filters.Regex('Make the group private'), make_group_private))
 
     # Run the bot until you press Ctrl-C
