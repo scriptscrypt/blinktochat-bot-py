@@ -217,9 +217,10 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             stats_message = f"Groups gated with collection address {collection_address}:\n\n"
             for group in groups:
-                stats_message += f"Chat Name: {group['chatName']}\n"
-                stats_message += f"Gating Type: {group['gatingType']}\n"
-                stats_message += f"Created: {utilXtimeAgo(group['timestamp'])}\n\n"
+                stats_message += f"Chat Name: {group.get('chatName', 'Unknown')}\n"
+                stats_message += f"Gating Type: {group.get('gatingType', 'Unknown')}\n"
+                timestamp = group.get('timestamp', 'Unknown')
+                stats_message += f"Created: {time_ago(timestamp) if timestamp != 'Unknown' else 'Unknown'}\n\n"
                 stats_message += "-------------------\n\n"
 
         else:
@@ -233,7 +234,8 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
             for group in groups:
                 stats_message += f"Group: {group['chatName']}\n"
                 stats_message += f"Collection Address: {group['collectionAddress']}\n\n"
-                stats_message += f"Created: {utilXtimeAgo(group['timestamp'])}\n\n"
+                timestamp = group.get('timestamp', 'Unknown')
+                stats_message += f"Created: {time_ago(timestamp) if timestamp != 'Unknown' else 'Unknown'}\n\n"
                 stats_message += "-------------------\n\n"
 
         # Split long messages if necessary
