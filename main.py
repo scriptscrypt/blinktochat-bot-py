@@ -358,6 +358,7 @@ def main():
     application.add_handler(CommandHandler("magic", magic))
     application.add_handler(CommandHandler("fetch", fetch))
     application.add_handler(CommandHandler("stats", stats))  # Add this line
+    application.add_handler(CommandHandler("validate", validate))
 
     application.add_handler(MessageHandler(filters.Regex('Make the group private'), make_group_private))
     
