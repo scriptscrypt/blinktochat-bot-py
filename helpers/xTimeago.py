@@ -1,6 +1,6 @@
 from datetime import datetime
 
-def utilXtimeAgo(timestamp):
+def utilXtimeAgo(timestamp_str):
 # helpers/time_utils.py
     try:
         # Convert the timestamp string to a float
