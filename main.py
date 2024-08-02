@@ -192,13 +192,13 @@ async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_title = update.effective_chat.title
         
         # Construct the tweet text with the additional line
-        tweet_text = f"Join this exclusive {chat_title} chat - Blinktochat\n\n🔗 "
+        tweet_text = f"Join this exclusive {chat_title} chat - Blinktochat\n"
         # Encode the text to ensure spaces and special characters are correctly handled
         encoded_text = utilUrlEncode(tweet_text)
         # Construct the full URL for the Twitter intent
         tweetIntentWeb = f"https://twitter.com/intent/tweet?url={blink_url}&text={encoded_text}"
         # await update.message.reply_text(blink_url)
-        await update.message.reply_text("Click here to Share directly on X: " + tweetIntentWeb)
+        await update.message.reply_text("Click here to Share directly on X:\n" + tweetIntentWeb + "\n\n" +"Blink URL" + blink_url)
 
         # dialect_url = f"https://dial.to/devnet?action=solana-action:{blink_url}"
         # await update.message.reply_text(dialect_url)
