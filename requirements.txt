@@ -20,4 +20,4 @@ tzlocal==5.2
 urllib3==2.2.2
 flask
 datetime
-urllib
+re
