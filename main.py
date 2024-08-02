@@ -11,6 +11,7 @@ from helpers.xTimeago import utilXtimeAgo
 from telegram.constants import ParseMode
 from telegram.error import BadRequest
 import requests
+from urllib.parse import quote
 
 # Load environment variables
 load_dotenv()
@@ -188,7 +189,14 @@ async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
         })
 
         blink_url = f"https://blinktochat.fun/{update.effective_chat.id}/{collectionAddress}"
-        tweetIntentWeb = f"https://twitter.com/intent/tweet?url={blink_url}&text=Join%20the%20exclusive%20{update.effective_chat.title}%20chat%20through%20Blinktochat.fun"
+        chat_title = update.effective_chat.title
+        
+        # Construct the tweet text with the additional line
+        tweet_text = f"Join the exclusive {chat_title} chat through Blinktochat.fun\n\nSome text in the last line: t.me/blinktochatbot"
+        # Encode the text to ensure spaces and special characters are correctly handled
+        encoded_text = quote(tweet_text)
+        # Construct the full URL for the Twitter intent
+        tweetIntentWeb = f"https://twitter.com/intent/tweet?url={blink_url}&text={encoded_text}"
         # await update.message.reply_text(blink_url)
         await update.message.reply_text(tweetIntentWeb)
 
