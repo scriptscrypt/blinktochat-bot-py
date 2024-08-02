@@ -188,7 +188,9 @@ async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
         })
 
         blink_url = f"https://blinktochat.fun/{update.effective_chat.id}/{collectionAddress}"
-        await update.message.reply_text(blink_url)
+        tweetIntentWeb = f"https://twitter.com/intent/tweet?url={blink_url}&text=Join%20the%20exclusive%20{update.effective_chat.title}%20chat%20through%20Blinktochat.fun"
+        # await update.message.reply_text(blink_url)
+        await update.message.reply_text(tweetIntentWeb)
 
         # dialect_url = f"https://dial.to/devnet?action=solana-action:{blink_url}"
         # await update.message.reply_text(dialect_url)
