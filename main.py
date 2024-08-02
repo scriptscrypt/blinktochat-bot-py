@@ -178,13 +178,13 @@ async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
         collectionAddress = ' '.join(args)
 
         groups_collection.insert_one({
-            'chatId': update.effective_chat.id,
-            'chatUserId': update.message.from_user.id,
-            'chatName': update.effective_chat.title,
-            'chatType': update.effective_chat.type,
-            'collectionAddress': collectionAddress,
-            'gatingType': 'NFTCollection',
-            'timestamp': str(update.message.date.timestamp())
+            'keyChatId': update.effective_chat.id,
+            'keyChatUserId': update.message.from_user.id,
+            'keyChatName': update.effective_chat.title,
+            'keyChatType': update.effective_chat.type,
+            'keyCollectionAddress': collectionAddress,
+            'keyGatingType': 'NFTCollection',
+            'keyTimestamp': str(update.message.date.timestamp())
         })
 
         blink_url = f"https://blinktochat.fun/{update.effective_chat.id}/{collectionAddress}"
@@ -212,31 +212,31 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if collection_address:
             # Fetch data for the specific collection address
-            groups = list(groups_collection.find({'collectionAddress': collection_address}))
+            groups = list(groups_collection.find({'keyCollectionAddress': collection_address}))
 
             if not groups:
                 return await update.message.reply_text(f"No groups found gated with collection address: {collection_address}")
 
             stats_message = f"Groups gated with collection address {collection_address}:\n\n"
             for group in groups:
-                stats_message += f"Chat Name: {group.get('chatName', 'Unknown')}\n"
-                stats_message += f"Gating Type: {group.get('gatingType', 'Unknown')}\n"
-                timestamp = group.get('timestamp', 'Unknown')
+                stats_message += f"Chat Name: {group.get('keyChatName', 'Unknown')}\n"
+                stats_message += f"Gating Type: {group.get('keyGatingType', 'Unknown')}\n"
+                timestamp = group.get('keyTimestamp', 'Unknown')
                 stats_message += f"Created: {utilXtimeAgo(timestamp) if timestamp != 'Unknown' else 'Unknown'}\n\n"
                 stats_message += "-------------------\n\n"
 
         else:
             # Fetch all groups
-            groups = list(groups_collection.find({}, {'chatName': 1, 'collectionAddress': 1}))
+            groups = list(groups_collection.find({}, {'keyChatName': 1, 'keyCollectionAddress': 1}))
 
             if not groups:
                 return await update.message.reply_text("No gated groups found.")
 
             stats_message = "All gated groups:\n\n"
             for group in groups:
-                stats_message += f"Group: {group['chatName']}\n"
-                stats_message += f"Collection Address: {group['collectionAddress']}\n\n"
-                timestamp = group.get('timestamp', 'Unknown')
+                stats_message += f"Group: {group['keyChatName']}\n"
+                stats_message += f"Collection Address: {group['keyCollectionAddress']}\n\n"
+                timestamp = group.get('keyTimestamp', 'Unknown')
                 stats_message += f"Created: {utilXtimeAgo(timestamp) if timestamp != 'Unknown' else 'Unknown'}\n\n"
                 stats_message += "-------------------\n\n"
 
@@ -266,15 +266,15 @@ async def handle_member_join(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         # Define the update fields
         update_fields = {
-            'hasJoined': True,
-            'telegramIdIp': user_id
+            'keyHasJoined': True,
+            'keyTelegramId': user_id
         }
 
         # Check if the user has a username
         if username:
-            user_record = users_collection.find_one({'username': username})
+            user_record = users_collection.find_one({'keyUsername': username})
         else:
-            user_record = users_collection.find_one({'telegramIdIp': user_id})
+            user_record = users_collection.find_one({'keyTelegramId': user_id})
 
         if user_record:
             # Update the user's hasJoined status and telegramIdIp if the record is found
@@ -305,7 +305,7 @@ async def validate(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         # Query the database for users with hasTransacted set to false
-        non_transacted_users = users_collection.find({'tgChatId': chat.id, 'hasTransacted': False})
+        non_transacted_users = users_collection.find({'keyTgChatId': chat.id, 'keyHasTransacted': False})
 
         # Check if there are any non-transacted users
         if non_transacted_users.count() == 0:
@@ -315,7 +315,7 @@ async def validate(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Process each user who hasn't transacted
         removed_users = []
         for user in non_transacted_users:
-            user_id = user['chatUserId']
+            user_id = user['keyTelegramId']
             try:
                 await context.bot.ban_chat_member(chat.id, user_id)
                 removed_users.append(user_id)
@@ -325,6 +325,7 @@ async def validate(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Provide feedback on the action taken
         if removed_users:
             await update.message.reply_text(f"Removed {len(removed_users)} user(s) who have not transacted.")
+            await update.message.reply_text(f"Users removed: {removed_users}")
         else:
             await update.message.reply_text("No users were removed. Some may already have left or cannot be removed.")
 
