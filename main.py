@@ -192,7 +192,7 @@ async def magic(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_title = update.effective_chat.title
         
         # Construct the tweet text with the additional line
-        tweet_text = f"Join the exclusive {chat_title} chat through Blinktochat.fun\n\nSome text in the last line: t.me/blinktochatbot"
+        tweet_text = f"Join the exclusive {chat_title} chat through Blinktochat.fun\n TG: https://t.me/blinktochatbot"
         # Encode the text to ensure spaces and special characters are correctly handled
         encoded_text = utilUrlEncode(tweet_text)
         # Construct the full URL for the Twitter intent
