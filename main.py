@@ -2,7 +2,7 @@ import os
 import certifi
 import urllib3
 urllib3.disable_warnings()
-from telegram import Update, ReplyKeyboardMarkup, Chat, BotCommand, ChatPermissions, ChatMember
+from telegram import Update, ReplyKeyboardMarkup, Chat, BotCommand, ChatPermissions, ChatMember, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, JobQueue, ChatMemberHandler
 from pymongo import MongoClient
 from dotenv import load_dotenv
