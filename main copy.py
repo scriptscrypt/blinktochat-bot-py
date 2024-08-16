@@ -2,7 +2,7 @@ import os
 import certifi
 import urllib3
 urllib3.disable_warnings()
-from telegram import Update, ReplyKeyboardMarkup, Chat, BotCommand, ChatPermissions, ChatMember
+from telegram import Update, ReplyKeyboardMarkup, Chat, BotCommand, ChatPermissions, ChatMember, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, JobQueue, ChatMemberHandler
 from pymongo import MongoClient
 from dotenv import load_dotenv
@@ -12,6 +12,7 @@ from telegram.constants import ParseMode
 from telegram.error import BadRequest
 import requests
 from helpers.utilUrlHelper import utilUrlEncode
+
 
 # Load environment variables
 load_dotenv()
@@ -342,7 +343,32 @@ async def validate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logging.error(f"Error processing /validate command: {e}")
         await update.message.reply_text("Sorry, there was an error processing the validation. Please try again later.")
-     
+   
+   
+# Add this new function to create the webapp keyboard
+def create_webapp_keyboard():
+    keyboard = [
+        [InlineKeyboardButton("Open Mini App", web_app=WebAppInfo(url="https://example.com/app"))]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+async def open_app(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
+        
+        # You can customize this image URL
+        image_url = "https://picsum.photos/seed/picsum/200/300"
+        
+        await context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=image_url,
+            caption="Welcome to the Mini App! Click the button below to open.",
+            reply_markup=create_webapp_keyboard()
+        )
+    except Exception as e:
+        logging.error(f"Error processing /app command: {e}")
+        await update.message.reply_text("Sorry, there was an error opening the app. Please try again later.")
+
 async def set_commands(context: ContextTypes.DEFAULT_TYPE):
     commands = [
         BotCommand("start", "Start the bot and see the options"),
@@ -350,18 +376,73 @@ async def set_commands(context: ContextTypes.DEFAULT_TYPE):
         BotCommand("fetch", "Use /fetch <walAddress> to fetch NFT collections for a wallet address"),
         BotCommand("stats", "Get statistics about registered groups (only works in DM)"),
         BotCommand("validate", "Validate members who have not transacted"),
-        
+        BotCommand("app", "Open the mini app"),  
 ]
     await context.bot.set_my_commands(commands)
 
-WEB_APP_URL = "https://blink-mini.vercel.app/"
+# HTML for the mini app (you'll host this separately)
+mini_app_html = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Telegram Mini App with Phantom Integration</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        img { max-width: 100%; height: auto; margin-bottom: 20px; }
+        button { margin: 10px; padding: 10px 20px; }
+        input { margin: 10px; padding: 5px; }
+    </style>
+</head>
+<body>
+    <img src="https://example.com/your-app-image.jpg" alt="App Image">
+    <br>
+    <button onclick="connectPhantom()">Connect Phantom</button>
+    <button onclick="sendData('Button 2')">Button 2</button>
+    <button onclick="sendData('Button 3')">Button 3</button>
+    <br>
+    <input type="text" id="userInput" placeholder="Enter text here">
+    <button onclick="sendInput()">Send Input</button>
 
-async def openBlink(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    keyboard = [
-        [InlineKeyboardButton("Open Blink 👀", web_app=WebAppInfo(url=WEB_APP_URL))]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Welcome! Click the button to open the web app:", reply_markup=reply_markup)
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        function sendData(buttonText) {
+            tg.sendData(buttonText);
+        }
+
+        function sendInput() {
+            let input = document.getElementById('userInput').value;
+            tg.sendData(input);
+        }
+
+        async function connectPhantom() {
+            if ("solana" in window) {
+                const provider = window.solana;
+                if (provider.isPhantom) {
+                    try {
+                        const resp = await window.solana.connect();
+                        console.log("Connected with Public Key:", resp.publicKey.toString());
+                        tg.sendData("Phantom connected: " + resp.publicKey.toString());
+                    } catch (err) {
+                        console.error("Failed to connect to Phantom:", err);
+                        tg.sendData("Failed to connect to Phantom");
+                    }
+                } else {
+                    console.log("Phantom is not installed!");
+                    tg.sendData("Phantom is not installed");
+                }
+            } else {
+                console.log("Solana object not found!");
+                tg.sendData("Solana object not found");
+            }
+        }
+    </script>
+</body>
+</html>
+"""
 
 def main():
     # Create the Application and pass it your bot's token.
@@ -377,9 +458,9 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("magic", magic))
     application.add_handler(CommandHandler("fetch", fetch))
-    application.add_handler(CommandHandler("stats", stats))  # Add this line
+    application.add_handler(CommandHandler("stats", stats))  
+    application.add_handler(CommandHandler("app", open_app))
     application.add_handler(CommandHandler("validate", validate))
-    application.add_handler(CommandHandler("openblink", openBlink))
 
     application.add_handler(MessageHandler(filters.Regex('Make the group private'), make_group_private))
     

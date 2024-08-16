@@ -30,7 +30,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/Users/srinivasa/Desktop/all-about-blinks/WORKING_DIR/blinktochatbot-py/myenv"
+set -gx VIRTUAL_ENV "/Users/Crypt/Code/One Last Folder/Websites/all-about-blinks/WORKING_DIR/blinktochatbot-py/myenv"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH
